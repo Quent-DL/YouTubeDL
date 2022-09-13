@@ -1,19 +1,16 @@
 from pytube import YouTube, Playlist
-import pytube
-import urllib
+import pytube as pt
 import sys
 import scripts as scr
+import urllib
 
-_AUDIO_EXT = ".mp3"
-_VIDEO_EXT = ".mp4"
 _FORBIDDEN_CHARS_IN_FILENAME = '\\/:*?"<>|'
 
-### TODO : ajouter des commentaires et docstrings
 class DownloadRequest:
     def __init__(
             self, 
             link="", 
-            path="./vids/", 
+            path=None, 
             name="ytdl_result", 
             audio_only=False,
             is_playlist=False,
@@ -24,10 +21,13 @@ class DownloadRequest:
         self.__total_size = None
 
         self.__is_playlist = is_playlist
-        self.__path = path if path != "" else "./vids"
+        if path == "": raise ValueError(scr.ERR_NO_PATH)
+        self.__path = path
         self.__custom_name = name
-        self.__ext = (_AUDIO_EXT if audio_only else _VIDEO_EXT)
+        self.__ext = (scr.EXT_TYPES[0] if audio_only else scr.EXT_TYPES[1])
 
+        # these two functions redirect to actual callback functions that
+        # also accept a UI_Work object as argument
         on_progress = lambda s, c, b: self.__on_progress(s, b, uiw)
         on_complete = lambda s, p: self.__on_complete(s, uiw)
         try:
@@ -35,22 +35,37 @@ class DownloadRequest:
                 yts = [YouTube(url=vid_url, on_progress_callback=on_progress,
                                on_complete_callback=on_complete)
                     for vid_url in Playlist(link).video_urls]
-            else: yts = [YouTube(url=link, on_progress_callback=on_progress, 
-                                 on_complete_callback=on_complete)]
-        except (pytube.exceptions.RegexMatchError, KeyError):
+                if (yts == []): raise ValueError(scr.ERR_PLAYLIST)
+            else: 
+                yts = YouTube(url=link, on_progress_callback=on_progress, 
+                              on_complete_callback=on_complete)
+        except (pt.exceptions.RegexMatchError, KeyError):
             raise ValueError(scr.ERR_URL)
-        except pytube.exceptions.VideoUnavailable:
+        except pt.exceptions.VideoUnavailable:
             ### TODO Change ValueError to customException (e.g. ConnectionError)
-            raise ValueError(scr.ERR_UNAVAILABLE)
+            raise ValueError(scr.ERR_UNAVAILABLE_VIDEO)
         except urllib.error.URLError:
             ### TODO Change ValueError to customException (e.g. ConnectionError)
             raise ValueError(scr.ERR_CONNECTION)
 
-        if (yts == []): raise ValueError(scr.ERR_UNAVAILABLE_PLAYLIST)
+        # Fetches the appropriate method to call for the wanted Stream object 
+        get_proper_stream = (pt.query.StreamQuery.get_audio_only if audio_only 
+                             else pt.query.StreamQuery.get_highest_resolution)
+        if self.__is_playlist:
+            # No 'Private Video' issue to treat here : they are automatically
+            # removed from the Playlist object
+            self.__streams = [get_proper_stream(yt.streams) for yt in yts]
+        else:
+            try:
+                self.__streams = [get_proper_stream(yts.streams)]
+            except pt.exceptions.VideoPrivate:
+                raise ValueError(scr.ERR_VIDEO_PRIVATE)
+
+        """####### DELETED LINES ############################################
         if (audio_only): 
             self.__streams = [yt.streams.get_audio_only() for yt in yts]
         else: 
-            self.__streams = [yt.streams.get_highest_resolution() for yt in yts]
+            self.__streams = [yt.streams.get_highest_resolution() for yt in yts]"""
 
 
     def total_byte_size(self):

@@ -10,6 +10,8 @@ INFO = {
 
 DL_TYPES = ('Vidéo', 'Playlist')
 
+BROWSE_BUTTON = "Parcourir"
+
 EXT_TYPES = ('.mp3', '.mp4')
 
 DL_BUTTON = "Télécharger"
@@ -28,14 +30,18 @@ FINISHED_DOWNLOADING = "Téléchargement terminé ! :)"
 
 ERR_URL = "Lien URL invalide"
 
+ERR_NO_PATH = "Emplacement du dossier de destination\nvide ou invalide"
+
 ERR_UNAVAILABLE_VIDEO = """Échec d'accès à la vidéo
 
 Causes possibles :
 - Vidéo inexistante
-- Vidéo privée
 - Restriction d'âge/de pays"""
 
-ERR_UNAVAILABLE_PLAYLIST = "Playlist vide ou privée"
+ERR_VIDEO_PRIVATE = "Téléchargement impossible car la vidéo est privée"
+
+ERR_PLAYLIST = """Téléchargement impossible car la playlist est
+inexistante, privée, vide ou ne contient que des vidéos privées.""".strip('\n')
 
 ERR_CONNECTION = """Connexion impossible.
 Vérifiez votre connexion internet et réessayez."""

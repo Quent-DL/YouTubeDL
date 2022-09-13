@@ -1,10 +1,12 @@
+from fileinput import filelineno
 import downloader as dl
 import scripts as scr
 from tkinter import *
 from tkinter import messagebox
+from tkinter import filedialog
 from tkinter import ttk
 
-_X_MINSIZE = 400
+_X_MINSIZE = 500
 
 
 class UI_Work:
@@ -59,6 +61,26 @@ class UI_Work:
         self.__percentage.set("{:.2f}%".format(bytes_downloaded*100/self.__total_size))
         self.__refresh_ui()
 
+def center_window(win):
+    """
+    Centers a tkinter window
+    :param win: the main window or Toplevel window to center
+
+    source:
+    https://stackoverflow.com/questions/3352918/how-to-center-a-window-on-the-screen-in-tkinter
+    """
+    win.update_idletasks()
+    width = win.winfo_width()
+    frm_width = win.winfo_rootx() - win.winfo_x()
+    win_width = width + 2 * frm_width
+    height = win.winfo_height()
+    titlebar_height = win.winfo_rooty() - win.winfo_y()
+    win_height = height + titlebar_height + frm_width
+    x = win.winfo_screenwidth() // 2 - win_width // 2
+    y = win.winfo_screenheight() // 2 - win_height // 2
+    win.geometry('{}x{}+{}+{}'.format(width, height, x, y))
+    win.deiconify()
+
 
 def update_window_minsize(root):
     root.update()
@@ -90,6 +112,13 @@ def _func_button(*args):
         uiw._destroy()
 
 
+def _browse_button(*args):
+    new_path = filedialog.askdirectory()
+    path_ent.delete(0)
+    path.set(new_path)
+    root.update()
+
+
 def _toggle_vid_pl(*args):
     if dlt.get() == scr.DL_TYPES[0] : name_ent.state(['!disabled'])
     else: name_ent.state(['disabled'])
@@ -104,27 +133,29 @@ if __name__ == '__main__':
 
     # Info frame
     i_f = ttk.Frame(root, padding="15 15 15 15")
-    i_f.grid(row=0, sticky="we")
+    i_f.grid(row=0, sticky='we')
     i_f.columnconfigure(1, weight=1)
 
     # Link entry
-    ttk.Label(i_f, text=scr.INFO['url']).grid(row=0, column=0, sticky=(W,E))
+    ttk.Label(i_f, text=scr.INFO['url']).grid(row=0, column=0, sticky='we')
     link = StringVar()
     link_ent = ttk.Entry(i_f, textvariable=link)
-    link_ent.grid(row=0, column=1, sticky=(W,E))
+    link_ent.grid(row=0, column=1, sticky='we')
 
     # Path entry
-    ### TODO Change to "open folder" OS window, not just text entry
-    ttk.Label(i_f, text=scr.INFO['path']).grid(row=1, column=0, sticky=(W,E))
+    ttk.Label(i_f, text=scr.INFO['path']).grid(row=1, column=0, sticky='we')
     path = StringVar()
     path_ent = ttk.Entry(i_f, textvariable=path)
-    path_ent.grid(row=1, column=1, sticky=(W,E), columnspan=2)
+    path_ent.grid(row=1, column=1, sticky='we', columnspan=1)
+    browse_b = ttk.Button(i_f, text=scr.BROWSE_BUTTON, 
+                          command=_browse_button, width=12)
+    browse_b.grid(row=1, column=2, sticky=E)
 
     # Name entry
-    ttk.Label(i_f, text=scr.INFO['name']).grid(row=2, column=0, sticky=(W,E))
+    ttk.Label(i_f, text=scr.INFO['name']).grid(row=2, column=0, sticky='we')
     name = StringVar()
     name_ent = ttk.Entry(i_f, textvariable=name)
-    name_ent.grid(row=2, column=1, sticky=(W,E))
+    name_ent.grid(row=2, column=1, sticky='we')
     ttk.Label(i_f, text=scr.INFO['name_info']).grid(
         row=3, column=0, columnspan=2, sticky=W)
 
@@ -133,14 +164,14 @@ if __name__ == '__main__':
     exten_cbb = ttk.Combobox(i_f, textvariable=exten, width=6,
                              values=scr.EXT_TYPES, state='readonly')
     exten_cbb.current(1)
-    exten_cbb.grid(row=2, column=2, sticky="we")
+    exten_cbb.grid(row=2, column=2, sticky='we')
 
     # Video/Playlist (download type) combobox
     dlt = StringVar()
     dlt_cbb = ttk.Combobox(i_f, textvariable=dlt, width=8,
                            values=scr.DL_TYPES, state='readonly')
     dlt_cbb.current(0)
-    dlt_cbb.grid(row=0, column=2, sticky=(W,E))
+    dlt_cbb.grid(row=0, column=2, sticky='we')
     dlt_cbb.bind('<<ComboboxSelected>>', _toggle_vid_pl)
 
     # 'Download' button
@@ -149,6 +180,7 @@ if __name__ == '__main__':
 
     for child in i_f.winfo_children(): child.grid_configure(padx=5, pady=5)
     update_window_minsize(root)
+    center_window(root)
     link_ent.focus()
     root.bind('<Return>', _func_button)
     root.mainloop()
