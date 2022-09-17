@@ -7,6 +7,14 @@ import urllib
 _FORBIDDEN_CHARS_IN_FILENAME = '\\/:*?"<>|'
 
 class DownloadRequest:
+    """A DownloadRequest instance represents both a waiting list of Youtube
+    videos to download and a set of settings for the download itself
+
+    The only things you can do with an instance of this class are :
+    - get the total size of the waiting list videos in bytes
+    - download all the videos in the waiting list
+    """
+
     def __init__(
             self, 
             link="", 
@@ -42,10 +50,10 @@ class DownloadRequest:
         except (pt.exceptions.RegexMatchError, KeyError):
             raise ValueError(scr.ERR_URL)
         except pt.exceptions.VideoUnavailable:
-            ### TODO Change ValueError to customException (e.g. ConnectionError)
+            ### TODO Change ValueError to a custom error (e.g. ConnectionError)
             raise ValueError(scr.ERR_UNAVAILABLE_VIDEO)
         except urllib.error.URLError:
-            ### TODO Change ValueError to customException (e.g. ConnectionError)
+            ### TODO Change ValueError to a custom error (e.g. ConnectionError)
             raise ValueError(scr.ERR_CONNECTION)
 
         # Fetches the appropriate method to call for the wanted Stream object 
@@ -61,15 +69,10 @@ class DownloadRequest:
             except pt.exceptions.VideoPrivate:
                 raise ValueError(scr.ERR_VIDEO_PRIVATE)
 
-        """####### DELETED LINES ############################################
-        if (audio_only): 
-            self.__streams = [yt.streams.get_audio_only() for yt in yts]
-        else: 
-            self.__streams = [yt.streams.get_highest_resolution() for yt in yts]"""
-
 
     def total_byte_size(self):
-        """Returns the total number of bytes contained in a video/playlist.
+        """Returns the total number of bytes contained in the requested
+        video/playlist to download.
         Only the bytes that are necessary for a video to be played are counted
         (title, description, author, etc. are ignored).
         
@@ -87,12 +90,31 @@ class DownloadRequest:
 
     
     def __on_progress(self, stream, stream_remaining_bytes, uiw):
+        """While downloading a stream of the download waiting list, updates 
+        the progress bar in the UI work frame with the current percentage of 
+        the videos waiting list that has already been downloaded.
+
+        Args:
+        - stream (pytube.Stream) : the stream that's currently being downloaded
+        - stream_remaining_bytes (int) : the number of bytes that are yet to
+        download before 'stream' is fully downloaded
+        - uiw (ui_manager.UI_Work) : the UI_Work instance whose progress
+        bar must be updated"""
         uiw.update_progress_bar(
             self.__bytes_downloaded + stream.filesize - stream_remaining_bytes,
             f"{self.__videos_downloaded}/{len(self.__streams)}")
 
 
     def __on_complete(self, stream, uiw):
+        """After completing the downloading of a stream of the download waiting
+        list, updates the progress bar in the UI work frame with the current 
+        percentage of the videos waiting list that has already been downloaded.
+        Also updates the total bytes and videos downloaded to this point.
+
+        Args:
+        - stream (pytube.Stream) : the stream that has been fully downloaded
+        - uiw (ui_manager.UI_Work) : the UI_Work instance whose progress
+        bar must be updated"""
         self.__bytes_downloaded += stream.filesize
         self.__videos_downloaded += 1
         uiw.update_progress_bar(
@@ -101,7 +123,10 @@ class DownloadRequest:
 
 
     def download(self):
-        ### TODO : si erreur liée à vidéo privée, continuer avec le reste de la playlist
+        """Downloads all the videos of the wait list onto the user's computer,
+        with the specified settings (destination path, media type audio/video
+        and custom video name if only one video to download)
+        """
         self.__bytes_downloaded = 0
         use_title = (self.__is_playlist) or (self.__custom_name == "")
         for s in self.__streams:
