@@ -1,5 +1,5 @@
-from pytube import YouTube, Playlist
-import pytube as pt
+from pytubefix import YouTube, Playlist
+import pytubefix as pt
 import sys
 import scripts as scr
 import urllib
