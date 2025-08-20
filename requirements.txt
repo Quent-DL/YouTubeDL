@@ -1,4 +1,4 @@
 pytubefix >= 9.4.1
 requests
-python-dotev >= 1.1.1
+python-dotenv
 python-Levenshtein
