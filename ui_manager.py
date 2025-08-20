@@ -1,6 +1,7 @@
 import downloader as dl
 import scripts as scr
 import file_renaming
+import utils
 
 from tkinter import *
 from tkinter import messagebox
@@ -189,7 +190,7 @@ if __name__ == '__main__':
 
     # Path entry
     ttk.Label(i_f, text=scr.INFO['path']).grid(row=1, column=0, sticky='we')
-    path = StringVar()
+    path = StringVar(value=utils.get_output_folder_path())
     path_ent = ttk.Entry(i_f, textvariable=path)
     path_ent.grid(row=1, column=1, sticky='we', columnspan=1)
     browse_b = ttk.Button(i_f, text=scr.BROWSE_BUTTON, 
@@ -208,7 +209,7 @@ if __name__ == '__main__':
     exten = StringVar()
     exten_cbb = ttk.Combobox(i_f, textvariable=exten, width=6,
                              values=scr.EXT_TYPES, state='readonly')
-    exten_cbb.current(1)
+    exten_cbb.current(0)
     exten_cbb.grid(row=2, column=2, sticky='we')
 
     # Video/Playlist (download type) combobox
