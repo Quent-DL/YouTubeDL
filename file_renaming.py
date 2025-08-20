@@ -68,7 +68,7 @@ def _compute_info_from_query(query: str, access_token: str, limit=50) -> Spotify
 
 
 def _pick_most_relevant(query: str, spotify_results: SpotifyResults, min_confidence: int = MIN_CONFIDENCE) -> str:
-    def score(artist: str, title: str) -> float:
+    def score(artist: TrackArtist, title: TrackName) -> float:
         # Disregards order of the info in the query
         return fuzz.partial_token_sort_ratio(
             query, f"{artist} {title}")
