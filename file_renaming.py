@@ -1,15 +1,29 @@
 import os
 from dotenv import load_dotenv, dotenv_values 
 import requests
-import Levenshtein
+from thefuzz import fuzz
+from numpy import argmax
+from typing import NewType
+import re
 
-# TODO move in application
-# loading API key from the .env file
+# Detailed subtypes, for documentation purposes
+TrackArtist = NewType("TrackArtist", str)
+TrackName = NewType("TrackName", str)
+SpotifyResults = NewType("SpotifyResults", list[tuple[TrackArtist, TrackName]])
+
+
+# Constants
+MIN_CONFIDENCE = 90
+
+# loading API key from the .env file when importing this Python file
 load_dotenv() 
+
+# by default, no Spotify access key is defined
+access_token = None
 
 
 # TODO: handle access token expiration
-def get_access_token() -> str:
+def _get_access_token() -> str:
     # HTTP arguements
     url = "https://accounts.spotify.com/api/token"
     body = {
@@ -27,9 +41,9 @@ def get_access_token() -> str:
     return response.json()['access_token']
 
 
-def compute_info_from_query(query: str, access_token: str, limit=5) -> list[tuple[str]]:
+def _compute_info_from_query(query: str, access_token: str, limit=50) -> SpotifyResults:
 
-    def compute_info(track_obj: dict) -> str:
+    def compute_info(track_obj: dict) -> tuple[TrackArtist, TrackName]:
         # Isolating info
         track_name = track_obj['name']
         track_artists = ", ".join([artist_obj['name'] for artist_obj in track_obj['artists']])
@@ -49,29 +63,41 @@ def compute_info_from_query(query: str, access_token: str, limit=5) -> list[tupl
     response = requests.get(url, params=body, headers=headers)
     response.raise_for_status()
 
-    potential_names = [compute_info(track_obj) for track_obj in response.json()['tracks']['items']]
-    
-    return potential_names
+    spotify_results = [compute_info(track_obj) for track_obj in response.json()['tracks']['items']]
+    return spotify_results
 
 
-def pick_closest(query_name: str, targets: list[tuple[str]]) -> str:
-    def get_score(a: str) -> float:
-        return max(
-            # TODO
-        )
-    # TODO INCOMPLETE
-    scores = [(t, Levenshtein.ratio(query_name, t)) for t in targets]
-    
+def _pick_most_relevant(query: str, spotify_results: SpotifyResults, min_confidence: int = MIN_CONFIDENCE) -> str:
+    def score(artist: str, title: str) -> float:
+        # Disregards order of the info in the query
+        return fuzz.partial_token_sort_ratio(
+            query, f"{artist} {title}")
+
+    scores = [score(*track_info) for track_info in spotify_results]
+
+    # Using query name OR Spotify name, based on confidence threshold
+    best_idx = argmax(scores)
+    if scores[best_idx] >= min_confidence:
+        best_artist, best_title = spotify_results[argmax(scores)]
+        return f"{best_artist} - {best_title}"
+    else:
+        return query
 
 
-# TODO debug remove
-print(Levenshtein.ratio("Dua Lipa - My Heart", "My Heart - Dua Lipa"))
-exit()
+def get_spotify_name(query: str, min_confidence: int=MIN_CONFIDENCE) -> str:
+    # Only fetching an access token once for the following calls
+    global access_token
+    if not access_token:
+        access_token = _get_access_token()
 
+    # Processing query
+    ## removing parentheses content (eg. "(lyrics)", "[lyrics]", ...)
+    query = re.sub(r'\(([^)]+)\)', "", query)
+    query = re.sub(r'\[([^]]+)\]', "", query)
+    query = re.sub(r'\{([^}]+)\}', "", query)
+    ## removing successive spaces between words
+    query = re.sub(r'[ ]+', " ", query)
 
-
-query = "Dua Lipa - Break My Heart (Lyrics)"
-access_token = get_access_token()
-
-for name in compute_names_from_query(query, access_token, 20):
-    print(f"{Levenshtein.ratio(query, name):.3f} - {name}")
+    # Selecting appropriate name based on query
+    return _pick_most_relevant(
+        query, _compute_info_from_query(query, access_token), min_confidence)

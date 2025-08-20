@@ -3,6 +3,7 @@ import pytubefix as pt
 import sys
 import scripts as scr
 import urllib
+from typing import Callable
 
 _FORBIDDEN_CHARS_IN_FILENAME = '\\/:*?"<>|'
 
@@ -122,17 +123,39 @@ class DownloadRequest:
             f"{self.__videos_downloaded}/{len(self.__streams)}")
 
 
-    def download(self):
+    def download(self, func_renaming: Callable[[str], str] = None):
         """Downloads all the videos of the wait list onto the user's computer,
         with the specified settings (destination path, media type audio/video
         and custom video name if only one video to download)
+
+        Argument:
+        - func_renaming: a function that computes, for each track, the name of the file to create,
+        based on the YouTube title of the video. By default, the created file is named 
+        after the YouTube title.
         """
+        # Setting default naming scheme
+        if not func_renaming:
+            func_renaming = lambda name: name
+
         self.__bytes_downloaded = 0
-        use_title = (self.__is_playlist) or (self.__custom_name == "")
+
         for s in self.__streams:
-            fn = (s.title if use_title else self.__custom_name) + self.__ext
+            # Naming the file
+            ## Base filename
+            if self.__is_playlist:
+                fn = func_renaming(s.title)
+            else:
+                if self.__custom_name != "":
+                    fn = self.__custom_name
+                else:
+                    fn = func_renaming(s.title)
+            ## Adding the extension
+            fn += self.__ext
+            ## Checking for forbidden filename characters
             for c in _FORBIDDEN_CHARS_IN_FILENAME:
                 fn = fn.replace(c, "_")
+
+            # Actual download
             s.download(
                 output_path=self.__path,
                 filename=fn)

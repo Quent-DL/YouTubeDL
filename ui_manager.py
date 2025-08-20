@@ -1,6 +1,7 @@
-from fileinput import filelineno
 import downloader as dl
 import scripts as scr
+import file_renaming
+
 from tkinter import *
 from tkinter import messagebox
 from tkinter import filedialog
@@ -139,7 +140,8 @@ def _func_button(*args):
             uiw=uiw)
         uiw._add_progressbar(dlr.total_byte_size())
         uiw.set_status(scr.DOWNLOADING_STREAMS)
-        dlr.download()
+        # TODO: add possibility to disable autorenaming
+        dlr.download(func_renaming=file_renaming.get_spotify_name)
 
     except (AssertionError, ValueError) as e:
         messagebox.showerror(parent=root, title="Error", message=e)

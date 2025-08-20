@@ -1,4 +1,5 @@
 pytubefix >= 9.4.1
 requests
 python-dotenv
-python-Levenshtein
+thefuzz
+numpy
